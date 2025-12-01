@@ -51,12 +51,53 @@ end
 
 ```elixir
 defmodule Day01 do
+  @start 50
+  @max_clicks 100
+  
   def solve1(text) do
     text
+    |> AOC.as_single_lines()
+    |> Enum.reduce({@start, 0}, fn line, {position, zeros} ->
+      clicks = String.slice(line, 1..-1//1) |> String.to_integer()
+      if String.starts_with?(line, "R") do
+        position = rem(position + rem(clicks, @max_clicks), @max_clicks)
+        zeros = (position == 0) && (zeros + 1) || zeros
+        {position, zeros}
+      else
+        position = rem(position - rem(clicks, @max_clicks) + @max_clicks, @max_clicks)
+        zeros = (position == 0) && (zeros + 1) || zeros
+        {position, zeros}
+      end
+    end)
   end
 
-  # def solve2(text) do
-  # end
+  def solve2(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.reduce({@start, 0}, fn line, {position, zeros} ->
+      clicks = line
+        |> String.replace("L", "-")
+        |> String.replace("R", "+")
+        |> String.to_integer()
+      zeros = zeros + abs(div(clicks, @max_clicks))
+      clicks2 = rem(clicks, @max_clicks)
+      
+      if clicks2 < 0 do
+        Enum.reduce(-1..clicks2//-1, {position, zeros}, fn _index, {p, z} ->
+          p = p - 1
+          z = (p in [0, -@max_clicks]) && (z + 1) || z
+          {rem(p + @max_clicks, @max_clicks), z}
+        end)
+      else
+        Enum.reduce(1..clicks2//1, {position, zeros}, fn _index, {p, z} ->
+          p = p + 1
+          z = (p in [0, @max_clicks]) && (z + 1) || z
+          {rem(p, @max_clicks), z}
+        end)
+      end
+      # |> AOC.inspect(label: line)
+    end)
+  end
 end
 
 # Example:
@@ -64,12 +105,14 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day01.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 3)")
+# 1066
 
-# data.()
-# |> Day01.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# 
+data.()
+|> Day01.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 6)")
+# 6223
 
 ```
+
+
