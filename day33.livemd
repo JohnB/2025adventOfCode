@@ -52,10 +52,11 @@ end
 ```elixir
 defmodule Day33 do
   def solve1(text) do
+    text
   end
 
-  def solve2(text) do
-  end
+  # def solve2(text) do
+  # end
 end
 
 # Example:
