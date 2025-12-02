@@ -1,10 +1,10 @@
 <!-- vim: syntax=markdown -->
 
-# Day 02
+# Day 03
 
 ```elixir
 # Note: when making the next template, something like this works well:
-#   `cat day02.livemd | sed 's/33/04/' > day04.livemd`
+#   `cat day03.livemd | sed 's/33/04/' > day04.livemd`
 # When inspecting lists of numbers, use "charlists: :as_lists"
 #
 Mix.install([
@@ -16,8 +16,6 @@ Mix.install([
 IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "5adventOfCode/advent_of_code.ex")
 alias AdventOfCode, as: AOC
 alias Kino.Input
-require Integer # for Integer.is_even(), and others
-
 ```
 
 ## Installation and Data
@@ -52,42 +50,26 @@ end
 ## Solution
 
 ```elixir
-defmodule Day02 do
+defmodule Day03 do
   def solve1(text) do
     text
-    |> String.split(",", trim: true)
-    |> Enum.reduce({0, 0}, fn range, {part1, part2} ->
-      [low, high] = String.split(range, "-")
-        |> Enum.map(&String.to_integer/1)
-
-      low..high
-      |> Enum.reduce({part1, part2}, fn id, {part1a, part2a} ->
-        str = "#{id}"
-        length = String.length(str)
-        half = div(length, 2)
-        
-        # Part 1 - check for abcabc
-        add_to_part1 = (Integer.is_even(length) && 
-          String.slice(str, 0, half) == String.slice(str, half, half)) && id || 0
-        
-        # Part 2 - check for abcabcabc
-        add_to_part2 = ((add_to_part1 == id) 
-                        || Regex.match?(~r/^(\d{1,222})(\1)+$/, str)) && id || 0
-
-        {part1a + add_to_part1, part2a + add_to_part2}
-      end)
-    end)
   end
+
+  # def solve2(text) do
+  # end
 end
 
 # Example:
 
 IO.inspect(Time.utc_now())
 data.()
-|> Day02.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 1227775554, 4174379265)")
-IO.inspect(Time.utc_now())
-# Part 1: 24043483400
-# Part 2: 38262920235
+|> Day03.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+#
+
+# data.()
+# |> Day03.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# 
 
 ```
