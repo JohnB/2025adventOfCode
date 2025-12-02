@@ -50,9 +50,35 @@ end
 ## Solution
 
 ```elixir
+require Integer
 defmodule Day02 do
   def solve1(text) do
     text
+    # |> AOC.inspect()
+    |> String.split(",", trim: true)
+    # |> AOC.inspect()
+    |> Enum.reduce(0, fn range, acc ->
+      AOC.inspect(range)
+      [low, high] = String.split(range, "-")
+        # |> AOC.inspect()
+        |> Enum.map(&String.to_integer/1)
+        # |> AOC.inspect()
+
+      low..high
+      |> Enum.filter(fn id ->
+        str = "#{id}"
+        length = String.length(str)
+        half = div(length, 2)
+        # Part 1 - check for abcabc
+        (Integer.is_even(length) && 
+          String.slice(str, 0, half) == String.slice(str, half, half))
+          # Part 2 - check for abcabcabc
+          || Regex.match?(~r/^(\d{1,222})(\1)+$/, str)
+      end)
+      |> AOC.inspect()
+      |> Enum.reduce(acc, fn id, acc -> acc + id end)
+      |> AOC.inspect()
+    end)
   end
 
   # def solve2(text) do
