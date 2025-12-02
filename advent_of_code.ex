@@ -22,7 +22,7 @@ defmodule AdventOfCode do
   def as_solid_grid(width, height, initial_value \\ nil) do
     last_cell = width * height - 1
 
-    (0..last_cell)
+    0..last_cell
     |> Map.new(fn index -> {index, initial_value} end)
     |> Map.merge(%{
       grid_width: width,
@@ -67,7 +67,7 @@ defmodule AdventOfCode do
     |> grid_cells()
     |> Enum.reduce(grid, fn key, acc ->
       value = acc[key]
-      Map.put(acc, key, is_integer(value) && value || String.to_integer(value))
+      Map.put(acc, key, (is_integer(value) && value) || String.to_integer(value))
     end)
   end
 
@@ -79,19 +79,22 @@ defmodule AdventOfCode do
       index - grid.grid_width,
       index - 1,
       index + 1,
-      index + grid.grid_width,
+      index + grid.grid_width
     ]
     |> Enum.map(fn neighbor ->
-    cond do
-      neighbor < 0 ->
-        -(10_000 + neighbor)
-      neighbor > grid.last_cell ->
-        -(10_000 + neighbor)
-      div(neighbor, grid.grid_width) == div(index, grid.grid_width) ||
-        rem(neighbor, grid.grid_width) == rem(index, grid.grid_width) ->
-        neighbor
-      true ->
-        -(10_000 + neighbor)
+      cond do
+        neighbor < 0 ->
+          -(10_000 + neighbor)
+
+        neighbor > grid.last_cell ->
+          -(10_000 + neighbor)
+
+        div(neighbor, grid.grid_width) == div(index, grid.grid_width) ||
+            rem(neighbor, grid.grid_width) == rem(index, grid.grid_width) ->
+          neighbor
+
+        true ->
+          -(10_000 + neighbor)
       end
     end)
   end
@@ -101,9 +104,10 @@ defmodule AdventOfCode do
       index - grid.grid_width,
       index - 1,
       index + 1,
-      index + grid.grid_width,
+      index + grid.grid_width
     ]
-    |> Enum.filter(fn neighbor -> grid[neighbor] end) # nils are off-board
+    # nils are off-board
+    |> Enum.filter(fn neighbor -> grid[neighbor] end)
     |> Enum.filter(fn neighbor ->
       # must be on the same row or column to ensure we don't go side-to-side
       div(neighbor, grid.grid_width) == div(index, grid.grid_width) ||
@@ -119,23 +123,24 @@ defmodule AdventOfCode do
     # excursions will be off-board and removed when they return nil.
     positions =
       [index - grid.grid_width, index + grid.grid_width] ++
-      if x > 0 do
-        [index - grid.grid_width - 1, index - 1, index + grid.grid_width - 1]
-      else
-        []
-      end ++
-      if x == (grid.grid_width - 1) do
-        []
-      else
-        [index - grid.grid_width + 1, index + 1, index + grid.grid_width + 1]
-      end
+        if x > 0 do
+          [index - grid.grid_width - 1, index - 1, index + grid.grid_width - 1]
+        else
+          []
+        end ++
+        if x == grid.grid_width - 1 do
+          []
+        else
+          [index - grid.grid_width + 1, index + 1, index + grid.grid_width + 1]
+        end
 
     positions
-    |> Enum.filter(fn neighbor -> grid[neighbor] end) #off-board
+    # off-board
+    |> Enum.filter(fn neighbor -> grid[neighbor] end)
   end
 
   def grid_cells(grid) do
-    (0..grid.last_cell)
+    0..grid.last_cell
   end
 
   def grid_rows(grid) do
@@ -158,13 +163,17 @@ defmodule AdventOfCode do
 
   def invert(grid) do
     grid_cells(grid)
-    |> Enum.reduce(%{grid |
-      grid_width: grid.grid_height,
-      grid_height: grid.grid_width,
-      last_cell: grid.last_cell
-    }, fn cell, acc ->
-      Map.put(acc, grid_x(grid, cell) * grid.grid_height + grid_y(grid, cell), grid[cell])
-    end)
+    |> Enum.reduce(
+      %{
+        grid
+        | grid_width: grid.grid_height,
+          grid_height: grid.grid_width,
+          last_cell: grid.last_cell
+      },
+      fn cell, acc ->
+        Map.put(acc, grid_x(grid, cell) * grid.grid_height + grid_y(grid, cell), grid[cell])
+      end
+    )
   end
 
   @doc """
@@ -189,16 +198,17 @@ defmodule AdventOfCode do
     }
   end
 
-#  @ascii_zero 48
-#  @max_display 40
+  #  @ascii_zero 48
+  #  @max_display 40
   def display_grid(grid, text \\ nil) do
     text && IO.puts("\n--- #{text}")
 
     0..grid.last_cell
     |> Enum.chunk_every(grid.grid_width)
-      # |> IO.inspect(label: "Grid chunks")
+    # |> IO.inspect(label: "Grid chunks")
     |> Enum.map(fn indexes ->
-      line = indexes
+      line =
+        indexes
         |> Enum.map(fn index ->
           # For a known-printable grid:
           grid[index]
@@ -206,6 +216,7 @@ defmodule AdventOfCode do
           # (grid[index] >= @max_display) && "." || (@ascii_zero + grid[index])
         end)
         |> Enum.join("")
+
       (String.slice("#{grid_y(grid, List.first(indexes))}   ", 0, 4) <> line)
       |> IO.puts()
     end)
@@ -220,19 +231,22 @@ defmodule AdventOfCode do
   @cost 1
 
   def shortest_path(grid, latest_nodes, node_map, cost_function, finish) do
-    {updated_node_map, neighbor_nodes} = latest_nodes
-                                         |> Enum.reduce({node_map, MapSet.new()}, fn node, {map, set} ->
-      unvisited_neighbors = grid
-                            |> neighbors4(node)
-                            |> Enum.filter(fn neighbor ->
-        neighbor in Map.keys(node_map)  && node_map[neighbor].cost == @infinity
+    {updated_node_map, neighbor_nodes} =
+      latest_nodes
+      |> Enum.reduce({node_map, MapSet.new()}, fn node, {map, set} ->
+        unvisited_neighbors =
+          grid
+          |> neighbors4(node)
+          |> Enum.filter(fn neighbor ->
+            neighbor in Map.keys(node_map) && node_map[neighbor].cost == @infinity
+          end)
+
+        unvisited_neighbors
+        |> Enum.reduce({map, set}, fn neighbor, {map1, set1} ->
+          {cost_function.(map1, node, neighbor), MapSet.put(set1, neighbor)}
+        end)
       end)
 
-      unvisited_neighbors
-      |> Enum.reduce({map, set}, fn neighbor, {map1, set1} ->
-        {cost_function.(map1, node, neighbor), MapSet.put(set1, neighbor)}
-      end)
-    end)
     # |> inspect(label: "{updated_node_map, neighbor_nodes}")
 
     if updated_node_map[finish].path == [] do
@@ -244,21 +258,24 @@ defmodule AdventOfCode do
 
   def shortest_path(grid, start, finish) do
     # Step 1: Find the unvisited set.
-    node_map = Enum.reject(grid_cells(grid), fn k -> grid[k] == @wall end)
-               # Step 2: Assign distances to unvisited nodes. The start node will get a 0 distance.
-               |> Enum.reduce(%{}, fn index, acc ->
-      if index == start do
-        Map.put(acc, index, %{cost: 0, path: [start]})
-      else
-        # Note: an empty path list means it is un-visited
-        Map.put(acc, index, %{cost: @infinity, path: []})
-      end
-    end)
+    node_map =
+      Enum.reject(grid_cells(grid), fn k -> grid[k] == @wall end)
+      # Step 2: Assign distances to unvisited nodes. The start node will get a 0 distance.
+      |> Enum.reduce(%{}, fn index, acc ->
+        if index == start do
+          Map.put(acc, index, %{cost: 0, path: [start]})
+        else
+          # Note: an empty path list means it is un-visited
+          Map.put(acc, index, %{cost: @infinity, path: []})
+        end
+      end)
+
     # |> inspect(label: "node_map")
 
     cost_function = fn map, a, b ->
       # This handles Step 3 and Step 4: update path and distance from neighbors.
       cost_from_a = map[a].cost + @cost
+
       if map[b].cost < cost_from_a do
         # Nothing to do - the node already has the lower cost & path
         map
@@ -266,6 +283,7 @@ defmodule AdventOfCode do
         Map.put(map, b, %{cost: cost_from_a, path: map[a].path ++ [b]})
       end
     end
+
     shortest_path(grid, [start], node_map, cost_function, finish)
   end
 
@@ -319,6 +337,4 @@ defmodule AdventOfCode do
   end
 
   # -- startup and kino-related functions
-
 end
-
