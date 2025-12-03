@@ -7,8 +7,10 @@ defmodule AdventOfCode do
     IEx.Helpers.c("lib/advent_of_code.ex")
     alias AdventOfCode, as: AOC
   """
-
   alias Kino
+
+  @empty_cell "."
+  @wall_cell "#"
 
   def inspect(thing, keyword_list \\ []) do
     IO.inspect(thing, keyword_list ++ [charlists: :as_lists])
@@ -34,9 +36,34 @@ defmodule AdventOfCode do
   end
 
   @doc """
+    Reads in a grid of characters, depicting a maze
+  """
+  def as_maze(multiline_text, width \\ nil, wall \\ @wall_cell) do
+    multiline_text
+    |> as_grid(width)
+    |> Enum.reject(fn {key, value} -> is_integer(key) && value == wall end)
+    |> Map.new()
+    |> add_unusual_maze_cells()
+  end
+
+  # Allow the use of `maze.S` to specify the index for "S"
+  def add_unusual_maze_cells(maze) do
+    maze
+    |> Enum.reduce(maze, fn {key, value}, acc ->
+      if is_integer(key) && value not in [@empty_cell, @wall_cell] do
+        Map.put(acc, String.to_atom(value), key)
+      else
+        acc
+      end
+    end)
+  end
+
+  @doc """
     Reads in a grid of characters, returning a map
   """
-  def as_grid(multiline_text, width \\ nil) do
+  def as_grid(multiline_text, width \\ nil)
+  def as_grid("", _width), do: raise("no grid data")
+  def as_grid(multiline_text, width) do
     [line0 | _] = lines = as_single_lines(multiline_text)
     line_width = String.length(line0)
     grid_width = width || line_width
@@ -211,7 +238,7 @@ defmodule AdventOfCode do
         indexes
         |> Enum.map(fn index ->
           # For a known-printable grid:
-          grid[index]
+          grid[index] || "?"
           # For a somewhat-printable grid:
           # (grid[index] >= @max_display) && "." || (@ascii_zero + grid[index])
         end)
