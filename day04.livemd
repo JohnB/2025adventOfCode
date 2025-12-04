@@ -52,11 +52,57 @@ end
 ```elixir
 defmodule Day04 do
   def solve1(text) do
-    text
+    grid = text
+      |> AOC.as_grid()
+      |> AOC.display_grid()
+
+    grid
+    |> AOC.grid_cells()
+    |> Enum.filter(fn cell -> grid[cell] == "@" end)
+    |> Enum.reduce(0, fn cell, acc ->
+      neighbors = AOC.neighbors8(grid, cell)
+        # |> AOC.inspect()
+        |> Enum.filter(fn neighbor -> grid[neighbor] == "@" end)
+        # |> AOC.inspect(label: "@@@")
+
+      count = Enum.count(neighbors)
+        # |> AOC.inspect(label: "node #{cell}")
+      (count < 4) && (acc + 1) || acc
+    end)
   end
 
-  # def solve2(text) do
-  # end
+  def solve2(text) do
+    grid = text
+      |> AOC.as_grid()
+      |> AOC.display_grid()
+
+    {num_removed, new_grid} = 1..1_000_000
+    |> Enum.reduce_while({0, grid}, fn index, {count, grid2} ->
+      {countx, gridx} = grid2
+        |> AOC.grid_cells()
+        |> Enum.filter(fn cell -> grid2[cell] == "@" end)
+        |> Enum.reduce({0, grid2}, fn cell, {count2a, grid2a} ->
+          neighbors = AOC.neighbors8(grid2, cell)
+            |> Enum.filter(fn neighbor -> grid2[neighbor] == "@" end)
+  
+          num_left = Enum.count(neighbors)
+          cond do
+            num_left < 4 ->
+              {count2a + 1, Map.put(grid2a, cell, "x")}
+            true ->
+              {count2a, grid2a}
+          end
+        end)
+      AOC.display_grid(gridx, "iteration #{index} (#{countx} removed)")
+      if countx == 0 do
+        {:halt, {count, gridx}}
+      else
+        {:cont, {count + countx, gridx}}
+      end
+    end)
+    AOC.display_grid(new_grid, "FINAL")
+    num_removed
+  end
 end
 
 # Example:
@@ -64,12 +110,12 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day04.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 13)")
+# 1457
 
-# data.()
-# |> Day04.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# 
+data.()
+|> Day04.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 43)")
+# 8310
 
 ```
