@@ -51,8 +51,72 @@ end
 
 ```elixir
 defmodule Day05 do
+  # Incoming ranges should already be sorted
+  def merge_ranges(ranges) do
+    [first | rest] = ranges
+    
+    len = Enum.count(ranges)
+    1..len
+    |> Enum.reduce_while({[], first, rest}, fn index, {ok, tbd, to_check} ->
+      AOC.inspect([index, {ok, tbd, to_check}], label: "line9")
+      if to_check == [] do
+        {:halt, [ok ++ [tbd]]}
+        |> AOC.inspect(label: "halt")
+      else
+        [next | restrest] = to_check
+        tbd1..tbd2 = tbd
+        _next1..next2 = next
+        cond do
+          Range.disjoint?(tbd, next) -> 
+            IO.puts("disjoint")
+            {:cont, {ok ++ [tbd], next, restrest}}
+          next2 <= tbd2 -> 
+            IO.puts("next subsumed by tbd")
+            # [nextnext | restrest] = restrest
+            {:cont, {ok, tbd, restrest}}
+          true ->
+            IO.puts("merge #{tbd1}..#{next2}")
+            # [nextnext | restrest] = restrest
+            {:cont, {ok, tbd1..next2//1, restrest}}
+        end
+        |> AOC.inspect(label: "cond result")
+      end
+    end)
+    |> AOC.inspect()
+    |> List.flatten()
+    |> Enum.sort()
+    |> AOC.inspect()
+  end
+  
   def solve1(text) do
-    text
+    [fresh, available] = text
+      |> AOC.as_doublespaced_paragraphs()
+
+    fresh_ranges = fresh
+      |> AOC.as_single_lines()
+      |> Enum.map(fn line -> 
+        [a, b] = line
+          |> String.split("-")
+          |> Enum.map(fn entry -> String.to_integer(entry) end)
+        (a..b//1)
+      end)
+      |> Enum.sort()
+      |> AOC.inspect(label: "sorted ranges")
+
+    available
+    |> AOC.as_single_lines()
+    |> Enum.filter(fn id ->
+      value = String.to_integer(id)
+      
+      fresh_ranges
+      |> Enum.any?(fn range -> value in range end)
+    end)
+    |> Enum.count()
+    |> IO.inspect(label: "\n*** Part 1 solution (example: 3)")
+
+    fresh_ranges
+    |> merge_ranges()
+    |> Enum.reduce(0, fn range, acc -> acc + Range.size(range) end)
   end
 
   # def solve2(text) do
@@ -64,7 +128,7 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day05.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 3)")
 #
 
 # data.()
