@@ -55,7 +55,6 @@ defmodule Day06 do
     [operations, top_line | operands] = text
       |> AOC.as_single_lines()
       |> Enum.reverse()
-      |> AOC.inspect()
 
     op_map = operations
       |> String.split()
@@ -65,6 +64,7 @@ defmodule Day06 do
     top_line = top_line
       |> String.split()
       |> Enum.map(&String.to_integer/1)
+
     operands
     |> Enum.reduce(top_line, fn line, acc ->
       line = line 
@@ -80,29 +80,29 @@ defmodule Day06 do
           end
         end)
     end)
-      |> Enum.sum()
+    |> Enum.sum()
   end
 
   def solve2(text) do
-    [operations | operands] = text
-      |> AOC.as_single_lines()
-      |> Enum.reverse()
-      # |> AOC.inspect()
-      # |> Enum.map(fn line ->
-      #   AOC.inspect(line)
-      #   line
-      # end)
+    text
+    |> AOC.as_grid()
+    |> AOC.invert()
+    |> AOC.to_text_grid()
+    |> AOC.as_doublespaced_paragraphs() # had to fix a bug here
+    |> Enum.map(fn paragraph ->
+      numbers = paragraph
+        |> AOC.as_single_lines()
+        |> Enum.map(fn line -> String.replace(line, ~r/\D*/, "") end)
+        |> Enum.reject(fn line -> line == "" end)
+        |> Enum.map(&String.to_integer/1)
 
-    operands_len = Enum.count(operands)
-    |> AOC.inspect(label: "operands_len")
-
-    operands
-    |> Enum.reverse()
-    |> Enum.map(fn line -> String.split(line, "", trim: true) end)
-    |> Enum.zip_with(&Function.identity/1)
-    |> Enum.map(&Enum.join/1)
-    |> Enum.chunk_every(operands_len, operands_len + 1, :ignore)
-    # |> Enum.map(&String.to_integer/1)
+      if String.contains?(paragraph, "+") do
+        Enum.sum(numbers)
+      else
+        Enum.product(numbers)
+      end
+    end)
+    |> Enum.sum()
   end
 end
 
@@ -112,11 +112,13 @@ IO.inspect(Time.utc_now())
 data.()
 |> Day06.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 4277556)")
-#
+# 4583860641327
 
+IO.inspect(Time.utc_now())
 data.()
 |> Day06.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# 
+|> IO.inspect(label: "\n*** Part 2 solution (example: 3263827)")
+IO.inspect(Time.utc_now())
+# 11602774058280
 
 ```

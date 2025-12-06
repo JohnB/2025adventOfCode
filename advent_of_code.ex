@@ -396,7 +396,7 @@ defmodule AdventOfCode do
 
   def as_doublespaced_paragraphs(multiline_text) do
     multiline_text
-    |> String.split("\n\n")
+    |> String.split(~r/\n *\n/)
   end
 
   def as_doublespaced_integers(multiline_text) do
