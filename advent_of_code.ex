@@ -12,6 +12,9 @@ defmodule AdventOfCode do
   @empty_cell "."
   @wall_cell "#"
 
+  @doc """
+    Wrap IO.inspect/2 with a version that always shows charlists as lists.
+  """
   def inspect(thing, keyword_list \\ []) do
     IO.inspect(thing, keyword_list ++ [charlists: :as_lists])
   end
@@ -46,7 +49,8 @@ defmodule AdventOfCode do
     |> add_unusual_maze_cells()
   end
 
-  # Allow the use of `maze.S` to specify the index for "S"
+  # Allow the use of single-character atoms to return the index of that character.
+  # For example: `maze[:S]` returns the index for "S" (often the start of a maze)
   def add_unusual_maze_cells(maze) do
     maze
     |> Enum.reduce(maze, fn {key, value}, acc ->
@@ -87,6 +91,9 @@ defmodule AdventOfCode do
     })
   end
 
+  @doc """
+    Parses a set of digits as a grid of integers in the range 0 to F (but usually just 0-9)
+  """
   def as_grid_of_digits(multiline_text) do
     grid = as_grid(multiline_text)
 
@@ -94,13 +101,17 @@ defmodule AdventOfCode do
     |> grid_cells()
     |> Enum.reduce(grid, fn key, acc ->
       value = acc[key]
-      Map.put(acc, key, (is_integer(value) && value) || String.to_integer(value))
+      Map.put(acc, key, (is_integer(value) && value) || String.to_integer(value, 16))
     end)
   end
 
-  # We only want 4 neighbors, not 8
-  # Order: [up, left, right, down]
-  # NOTE: DOES NOT HANDLE INFINITE GRID
+  @doc """
+    Return the 4-way neighbors (in the N, E, S, W cardinal directions) for a given grid cell,
+    including any that are off-grid (which are given a weird 10k value).
+    We only want 4 neighbors, not 8
+    Order: [up, left, right, down]
+    NOTE: DOES NOT HANDLE INFINITE GRID
+  """
   def neighbors4_including_offgrid(grid, index) do
     [
       index - grid.grid_width,
@@ -126,6 +137,12 @@ defmodule AdventOfCode do
     end)
   end
 
+  @doc """
+    Return the 4-way neighbors (in the N, E, S, W cardinal directions) for a given grid cell.
+    *excluding* any that are off-grid.
+    We only want 4 neighbors, not 8
+    Order: [up, left, right, down]
+  """
   def neighbors4(grid, index) do
     [
       index - grid.grid_width,
@@ -142,6 +159,10 @@ defmodule AdventOfCode do
     end)
   end
 
+  @doc """
+    Return the 8-way neighbors for a given grid cell.
+    NOTE: DOES NOT HANDLE INFINITE GRID
+  """
   # We only want all 8 neighbors
   # NOTE: DOES NOT HANDLE INFINITE GRID
   def neighbors8(grid, index) do
@@ -166,28 +187,47 @@ defmodule AdventOfCode do
     |> Enum.filter(fn neighbor -> grid[neighbor] end)
   end
 
+  @doc """
+    Return a range of all the grid indexes, without any of the ancillary grid-handling values.
+  """
   def grid_cells(grid) do
     0..grid.last_cell
   end
 
+  @doc """
+    Return a range of all the grid indexes, broken into lists of each row.
+  """
   def grid_rows(grid) do
     grid_cells(grid)
     |> Enum.chunk_every(grid.grid_width)
   end
 
+  @doc """
+    Return the X position of a particular cell.
+  """
   def grid_x(grid, cell), do: rem(cell, grid.grid_width)
+  @doc """
+    Return the UY position of a particular cell.
+  """
   def grid_y(grid, cell), do: div(cell, grid.grid_width)
+  @doc """
+    Return the cell number of an XY coordinate.
+    Does not verify that it is on-grid.
+  """
   def cell_id(grid, x, y), do: x + y * grid.grid_width
 
   def to_text_grid(grid) do
     grid_rows(grid)
     |> Enum.map(fn row ->
-      Enum.map(row, fn x -> grid[x] end)
+      Enum.map(row, fn x -> grid[x] || "?" end)
       |> Enum.join("")
     end)
     |> Enum.join("\n")
   end
 
+  @doc """
+    Swap the XY coordinates of a grid (flip it along its diagonal)
+  """
   def invert(grid) do
     grid_cells(grid)
     |> Enum.reduce(
@@ -312,6 +352,34 @@ defmodule AdventOfCode do
     end
 
     shortest_path(grid, [start], node_map, cost_function, finish)
+  end
+
+  @doc """
+    Given a list of Range structures, order them and merge any that overlap.
+  """
+  def merge_ranges(ranges) do
+    [first | rest] = Enum.sort(ranges)
+
+    1..Enum.count(ranges)
+    |> Enum.reduce_while({[], first, rest}, fn _index, {ok, tbd, to_check} ->
+      if to_check == [] do
+        {:halt, [ok ++ [tbd]]}
+      else
+        [next | restrest] = to_check
+        tbd1..tbd2//1 = tbd
+        _next1..next2//1 = next
+        cond do
+          Range.disjoint?(tbd, next) ->
+            {:cont, {ok ++ [tbd], next, restrest}}
+          next2 <= tbd2 ->
+            {:cont, {ok, tbd, restrest}}
+          true ->
+            {:cont, {ok, tbd1..next2//1, restrest}}
+        end
+      end
+    end)
+    |> List.flatten()
+    |> Enum.sort()
   end
 
   # Paragraph-based helpers
