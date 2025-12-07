@@ -51,8 +51,45 @@ end
 
 ```elixir
 defmodule Day07 do
+  @splitter "^"
+  @beam "|"
+  
   def solve1(text) do
-    text
+    grid = text
+      |> AOC.as_grid()
+    {start, "S"} = Enum.find(grid, fn {_k, v} -> v == "S" end)
+    |> AOC.inspect(label: "S")
+
+    {grid, beams} = 0..(grid.grid_height - 1)
+      |> Enum.reduce({grid, [start]}, fn _row, {grid1, beams} ->
+        {new_grid, new_beams} = beams
+          |> Enum.reduce({grid1, []}, fn beam, {grid2, beams2} -> 
+            one_down = beam + grid.grid_width
+            if grid2[one_down] == @splitter do
+              toe_beams = [one_down - 1, one_down + 1]
+              grid2 = Enum.reduce(toe_beams, grid2, fn bm, acc ->
+                Map.put(acc, bm, @beam)
+              end)
+              {grid2, beams2 ++ toe_beams}
+            else
+              {Map.put(grid2, one_down, @beam), beams2 ++ [one_down]}
+            end
+          end)
+        new_beams = new_beams
+          |> List.flatten()
+          |> Enum.uniq()
+        
+        {new_grid, new_beams}
+        # |> AOC.inspect(label: "ACK")
+    end)
+
+    AOC.display_grid(grid)
+    AOC.inspect(beams)
+    splitters = AOC.grid_cells(grid)
+      |> Enum.filter(fn cell ->
+        grid[cell] == @splitter && grid[cell - grid.grid_width] == @beam
+      end)
+    IO.puts("\n*** Part 1 solution (example: 21) #{Enum.count(splitters)}")
   end
 
   # def solve2(text) do
@@ -64,12 +101,14 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day07.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 21)")
 #
 
+# IO.inspect(Time.utc_now())
 # data.()
 # |> Day07.solve2()
 # |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+IO.inspect(Time.utc_now())
 # 
 
 ```
