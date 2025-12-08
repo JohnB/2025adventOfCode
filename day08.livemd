@@ -51,8 +51,114 @@ end
 
 ```elixir
 defmodule Day08 do
+  def distance([x1, y1, z1] = _p1, [x2, y2, z2] = _p2) do
+    # naive distance, just to get relative values
+    abs(x1 - x2) ** 2 +
+    abs(y1 - y2) ** 2 +
+    abs(z1 - z2) ** 2
+  end
+  
+  def find_connections(map, point1, rest) do
+    rest
+    |> Enum.reduce(map, fn {_k, v}, acc ->
+      dist = distance(point1, v)
+
+      acc
+      |> Map.put(dist, [point1, v])
+    end)
+    |> Map.merge(find_connections(rest))
+  end
+  
+  def find_connections(points) do
+    points
+    |> Enum.reduce_while(%{}, fn {k, v}, acc ->
+      # just used to extract the first point
+      {:halt, find_connections(acc, v, Map.delete(points, k))}
+    end)
+  end
+
+  def merge_sets([]), do: []
+  def merge_sets([first | rest]) do
+    if Enum.all?(rest, fn set -> MapSet.disjoint?(first, set) end) do
+      [first] ++ merge_sets(rest)
+    else
+      rest
+      |> Enum.reduce([], fn set, acc ->
+        if MapSet.disjoint?(first, set) do
+          acc ++ [set]
+        else
+          acc ++ [MapSet.union(first, set)]
+          |> AOC.inspect(label: "merged")
+        end
+      end)
+    end
+  end
+
+  def add_to_existing_set(p1, p2, known, sets) do
+    updated_sets = sets
+      |> Enum.map(fn set -> 
+        cond do
+          MapSet.member?(set, p1) -> MapSet.put(set, p2)
+          MapSet.member?(set, p2) -> MapSet.put(set, p1)
+          true -> set
+        end
+      end)
+
+    {
+      known |> MapSet.put(p1) |> MapSet.put(p2),
+      updated_sets
+      |> merge_sets()
+    }
+  end
+
+  def create_new_set(p1, p2, known, sets) do
+    {
+      known |> MapSet.put(p1) |> MapSet.put(p2),
+      sets ++ [MapSet.new([p1, p2])]
+    }
+  end
+  
   def solve1(text) do
-    text
+    [limit | lines] = text
+      |> AOC.as_single_lines()
+    limit = String.to_integer(limit)
+    points = lines
+      |> Enum.reduce(%{}, fn line, acc -> 
+        Map.put(acc, line, AOC.as_comma_separated_integers(line))
+      end)
+
+    connections = find_connections(points)
+
+    distances = connections
+      |> Map.keys()
+      |> Enum.sort()
+      |> Enum.take(limit)
+      |> AOC.inspect(label: "distances")
+    Enum.map(distances, fn k -> AOC.inspect(connections[k], label: "#{k}") end)
+
+    {known, circuits} = distances
+      |> Enum.reduce({MapSet.new(), []}, fn distance, {known, sets} ->
+        [p1, p2] = connections[distance]
+        if MapSet.member?(known, p1) || MapSet.member?(known, p2) do
+          add_to_existing_set(p1, p2, known, sets)
+        else
+          create_new_set(p1, p2, known, sets)
+        end
+      end)
+
+    AOC.inspect(known, label: "known (#{Enum.count(known)})")
+    circuits
+    |> AOC.inspect(label: "circuits")
+    |> Enum.map(fn circuit -> 
+      len = Enum.count(circuit) 
+      AOC.inspect([len, circuit])
+      len
+    end)
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> Enum.take(3)
+    |> AOC.inspect()
+    |> Enum.product()
   end
 
   # def solve2(text) do
@@ -64,8 +170,8 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day08.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 40)")
+# Part 1: 52668
 
 # data.()
 # |> Day08.solve2()
