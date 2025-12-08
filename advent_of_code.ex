@@ -202,6 +202,11 @@ defmodule AdventOfCode do
     |> Enum.chunk_every(grid.grid_width)
   end
 
+  def first_row(grid), do: 0..(grid.grid_width - 1)
+  def last_row(grid), do: (grid.last_cell - grid.grid_width + 1)..grid.last_cell
+  def first_column(grid), do: 0..(grid.last_cell - grid.grid_width + 1)//grid.grid_width
+  def last_column(grid), do: (grid.grid_width - 1)..grid.last_cell//grid.grid_width
+
   @doc """
     Return the X position of a particular cell.
   """

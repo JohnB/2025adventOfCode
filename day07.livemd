@@ -58,9 +58,9 @@ defmodule Day07 do
     grid = text
       |> AOC.as_grid()
     {start, "S"} = Enum.find(grid, fn {_k, v} -> v == "S" end)
-    |> AOC.inspect(label: "S")
+    # |> AOC.inspect(label: "S")
 
-    {grid, beams} = 0..(grid.grid_height - 1)
+    {grid, _beams} = 0..(grid.grid_height - 1)
       |> Enum.reduce({grid, [start]}, fn _row, {grid1, beams} ->
         {new_grid, new_beams} = beams
           |> Enum.reduce({grid1, []}, fn beam, {grid2, beams2} -> 
@@ -80,35 +80,82 @@ defmodule Day07 do
           |> Enum.uniq()
         
         {new_grid, new_beams}
-        # |> AOC.inspect(label: "ACK")
     end)
 
-    AOC.display_grid(grid)
-    AOC.inspect(beams)
     splitters = AOC.grid_cells(grid)
       |> Enum.filter(fn cell ->
         grid[cell] == @splitter && grid[cell - grid.grid_width] == @beam
       end)
     IO.puts("\n*** Part 1 solution (example: 21) #{Enum.count(splitters)}")
+
+    splits = AOC.grid_cells(grid)
+      |> Enum.reduce(%{}, fn cell, acc ->
+        up = cell - grid.grid_width
+        up_left = up - 1
+        up_right = up + 1
+        # Centered on cell 2, check cells 1-4 to decide what to do; maybe use 5 and 6:
+        #   546
+        #   123
+        case {grid[cell - 1], grid[cell], grid[cell + 1], grid[up]} do
+          {".", "S", ".", _} -> 
+            Map.put(acc, cell, 1)
+          {_, "^", _, _} -> 
+            acc
+          {".", "|", ".", _} -> 
+            Map.put(acc, cell, acc[up])
+          {"^", "|", "^", "|"} -> 
+            Map.put(acc, cell, (acc[up_left] || 0) + acc[up] + (acc[up_right] || 0))
+          {"^", "|", "^", _} -> 
+            Map.put(acc, cell, (acc[up_left] || 0) + (acc[up_right] || 0))
+          {"^", "|", _, _} -> 
+            Map.put(acc, cell, (acc[up_left] || 0) + (acc[up] || 0))
+          {_, "|", "^", _} -> 
+            Map.put(acc, cell, (acc[up_right] || 0) + (acc[up] || 0))
+          {_, "|", _, "|"} -> 
+            Map.put(acc, cell, acc[up])
+          {_, ".", _, _} -> 
+            acc
+        end
+      end)
+
+    # # Optional: display the timeline counts on the tree.
+    # # counts above 36 are truncated to modulo 36 to maintain the tree shape.
+    # splits
+    # |> Enum.reduce(grid, fn {k, v}, acc ->
+    #   Map.put(acc, k, Integer.to_string(rem(v, 36), 36))
+    # end)
+    # |> AOC.display_grid()
+
+    timelines = AOC.last_row(grid)
+      |> Enum.reduce(0, fn cell, acc -> acc + (splits[cell] || 0) end)
+    
+    IO.puts("\n*** Part 2 solution (example: 40) #{timelines}")
   end
-
-  # def solve2(text) do
-  # end
 end
-
-# Example:
 
 IO.inspect(Time.utc_now())
 data.()
 |> Day07.solve1()
-# |> IO.inspect(label: "\n*** Part 1 solution (example: 21)")
-#
-
-# IO.inspect(Time.utc_now())
-# data.()
-# |> Day07.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# Part 1: 1585
+# Part 2: 16716444407407
 IO.inspect(Time.utc_now())
-# 
+
+# Example data:
+# .......S.......
+# ...............
+# .......^.......
+# ...............
+# ......^.^......
+# ...............
+# .....^.^.^.....
+# ...............
+# ....^.^...^....
+# ...............
+# ...^.^...^.^...
+# ...............
+# ..^...^.....^..
+# ...............
+# .^.^.^.^.^...^.
+# ...............
 
 ```
