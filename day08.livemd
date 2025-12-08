@@ -161,21 +161,58 @@ defmodule Day08 do
     |> Enum.product()
   end
 
-  # def solve2(text) do
-  # end
+  def solve2(text) do
+    [limit | lines] = text
+      |> AOC.as_single_lines()
+    limit = String.to_integer(limit)
+    num_lines = Enum.count(lines)
+    points = lines
+      |> Enum.reduce(%{}, fn line, acc -> 
+        Map.put(acc, line, AOC.as_comma_separated_integers(line))
+      end)
+
+    connections = find_connections(points)
+
+    distances = connections
+      |> Map.keys()
+      |> Enum.sort()
+      # |> Enum.take(limit)
+      |> AOC.inspect(label: "distances")
+    Enum.map(distances, fn k -> AOC.inspect(connections[k], label: "#{k}") end)
+
+    distances
+      |> Enum.reduce_while({MapSet.new(), []}, fn distance, {known, sets} ->
+        [p1, p2] = connections[distance]
+        if MapSet.member?(known, p1) || MapSet.member?(known, p2) do
+          {k, s} = add_to_existing_set(p1, p2, known, sets)
+          if Enum.count(k) >= num_lines && Enum.count(s) == 1 do
+            [[x1, _, _], [x2, _, _]] = [p1, p2]
+            AOC.inspect([p1, p2], label: "#{x1} * #{x2}")
+            wall_distance = x1 * x2
+            AOC.inspect([wall_distance, p1, p2], label: "wall_distance: #{x1} * #{x2} (#{Enum.count(k)})")
+            {:halt, wall_distance}
+            # {:cont, {k, s}}
+          else
+            {:cont, {k, s}}
+          end
+        else
+          {:cont, create_new_set(p1, p2, known, sets)}
+        end
+      end)
+  end
 end
 
 # Example:
 
 IO.inspect(Time.utc_now())
-data.()
-|> Day08.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 40)")
+# data.()
+# |> Day08.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 40)")
 # Part 1: 52668
 
-# data.()
-# |> Day08.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+data.()
+|> Day08.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 25272)")
 # 
 
 ```
