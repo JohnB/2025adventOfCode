@@ -1,0 +1,117 @@
+<!-- vim: syntax=markdown -->
+
+# Day 09
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day09.livemd | sed 's/33/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "5adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day09 do
+  def max_area(list, map \\ %{})
+  def max_area([], map), do: map
+  def max_area([[x1, y1] | rest], map) do
+    map = max_area(rest, map)
+    Enum.reduce(rest, map, fn [x, y], acc ->
+      area = (1 + abs(x1 - x)) * (1 + abs(y1 - y))
+      if !is_nil(acc[area]), do: IO.puts("dupe at size #{area}!")
+      Map.put(acc, area, [[x1, y1], [x, y]])
+    end)
+  end
+  
+  def solve1(text) do
+    size_map = text
+      |> AOC.as_single_lines()
+      |> Enum.map(fn line -> AOC.as_comma_separated_integers(line) end)
+      |> max_area()
+    
+    Map.keys(size_map)
+      |> Enum.sort()
+      |> List.last()
+  end
+
+  def solve2(text) do
+    points = text
+      |> AOC.as_single_lines()
+      |> Enum.map(fn line -> AOC.as_comma_separated_integers(line) end)
+      |> Enum.sort()
+      # |> AOC.inspect()
+
+    size_map = points
+      |> max_area()
+
+    max = Map.keys(size_map)
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> Enum.find(fn size ->
+      [[x1, y1], [x2, y2]] = size_map[size]
+      
+      Enum.any?(points, fn [x, y] -> [x, y] in [[x1, y2], [x2, y1]] end) &&
+        !Enum.any?(points, fn [x, y] ->
+          [lowx, highx] = Enum.sort([x1, x2])
+          [lowy, highy] = Enum.sort([y1, y2])
+          lowx < x && x < highx && lowy < y && y < highy
+        end)
+    end)
+    AOC.inspect(size_map[max], label: "area (#{max})")
+    max
+  end
+end
+
+# Example:
+
+IO.inspect(Time.utc_now())
+data.()
+|> Day09.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 50)")
+# 4748826374
+
+data.()
+|> Day09.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 24)")
+# 153145224 is incorrect
+
+```
