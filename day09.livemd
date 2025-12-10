@@ -57,7 +57,7 @@ defmodule Day09 do
     map = max_area(rest, map)
     Enum.reduce(rest, map, fn [x, y], acc ->
       area = (1 + abs(x1 - x)) * (1 + abs(y1 - y))
-      if !is_nil(acc[area]), do: IO.puts("dupe at size #{area}!")
+      # if !is_nil(acc[area]), do: IO.puts("dupe at size #{area}!")
       Map.put(acc, area, [[x1, y1], [x, y]])
     end)
   end
@@ -73,30 +73,46 @@ defmodule Day09 do
       |> List.last()
   end
 
+  def max_area2(list, map \\ %{})
+  def max_area2([], map), do: map
+  def max_area2([[x1, y1] | rest], map) do
+    map = max_area2(rest, map)
+    Enum.reduce(rest, map, fn [x, y], acc ->
+      area = (1 + abs(x1 - x)) * (1 + abs(y1 - y))
+      Map.update(acc, area, [{[x1, y1], [x, y]}], fn existing ->
+        (existing || []) ++ [{[x1, y1], [x, y]}]
+      end)
+    end)
+  end
+  
   def solve2(text) do
     points = text
       |> AOC.as_single_lines()
       |> Enum.map(fn line -> AOC.as_comma_separated_integers(line) end)
       |> Enum.sort()
-      # |> AOC.inspect()
 
     size_map = points
-      |> max_area()
+      |> max_area2()
+      # |> AOC.inspect()
 
     max = Map.keys(size_map)
     |> Enum.sort()
     |> Enum.reverse()
-    |> Enum.find(fn size ->
-      [[x1, y1], [x2, y2]] = size_map[size]
-      
-      Enum.any?(points, fn [x, y] -> [x, y] in [[x1, y2], [x2, y1]] end) &&
-        !Enum.any?(points, fn [x, y] ->
-          [lowx, highx] = Enum.sort([x1, x2])
-          [lowy, highy] = Enum.sort([y1, y2])
-          lowx < x && x < highx && lowy < y && y < highy
-        end)
+    |> Enum.filter(fn size ->
+      # For each set of points making a rectangle...
+      Enum.any?(size_map[size], fn {[x1, y1], [x2, y2]} ->
+        # Is there at least one other corner in the set...
+        Enum.any?(points, fn [x, y] -> [x, y] in [[x1, y2], [x2, y1]] end) &&
+          # No points found inside the bounding box of the rectangle (meaning an inclusion)
+          # And no external lines go thru it?
+          !Enum.any?(points, fn [x, y] ->
+            [lowx, highx] = Enum.sort([x1, x2])
+            [lowy, highy] = Enum.sort([y1, y2])
+            (lowx < x && x < highx) || (lowy < y && y < highy)
+          end)
+        end)      
     end)
-    AOC.inspect(size_map[max], label: "area (#{max})")
+    # AOC.inspect(size_map[max], label: "area (#{max})")
     max
   end
 end
@@ -112,6 +128,6 @@ data.()
 data.()
 |> Day09.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: 24)")
-# 153145224 is incorrect
+# 153145224 is incorrect, as is 153080640 & 114163400 & 70006603 & 288196 & 923 & 917
 
 ```
