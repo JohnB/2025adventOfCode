@@ -1,0 +1,149 @@
+<!-- vim: syntax=markdown -->
+
+# Day 10
+
+```elixir
+# Note: when making the next template, something like this works well:
+#   `cat day10.livemd | sed 's/33/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "5adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Installation and Data
+
+```elixir
+input_example = Kino.Input.textarea("Example Data", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day10 do
+  @parser ~r/\[(.*)\] +(.*) +\{(.*)\}/
+  def parse_line(line) do
+    [_full, diagram, wiring, joltage] = Regex.run(@parser, line)
+    wiring = wiring
+      |> String.split(" ", trim: true)
+      |> Enum.map(fn csv ->
+        csv
+        |> String.slice(1..-2//1)
+        |> String.split(",")
+        |> Enum.map(&String.to_integer/1)
+      end)
+    diagram = diagram
+      |> AOC.inspect()
+      |> String.split("", trim: true)
+      |> Enum.with_index()
+      # |> AOC.inspect(label: "17")
+      |> Enum.reduce(%{}, fn {char, index}, acc -> Map.put(acc, index, char == "#") end)
+      # |> AOC.inspect(label: "19")
+
+    [diagram, wiring, joltage]
+    # |> AOC.inspect()
+  end
+
+  @no_convergence 500
+  def toggle(state, wires) do
+    wires
+    |> Enum.reduce(state, fn index, acc ->
+      Map.update!(acc, index, fn boolean -> !boolean end)
+    end)
+  end
+
+  # There is no point in applying the same wiring twice, so max depth is
+  # the same as the number of wirings.
+  def apply_until_match(initial_state, diagram, wiring, presses \\ 1)
+  def apply_until_match(_initial_state, _diagram, [], _presses), do: @no_convergence
+  def apply_until_match(diagram, diagram, _wiring, presses), do: presses
+  def apply_until_match(initial_state, diagram, wiring, presses) do
+    AOC.inspect([initial_state, presses, diagram, wiring])
+    result = wiring
+    |> Enum.reduce_while([], fn wires, acc ->
+      new_state = toggle(initial_state, wires)
+      if new_state == diagram do
+        {:halt, presses}
+      else
+        {:cont, acc ++ [new_state]}
+      end
+    end)
+
+    if is_integer(result) do
+      result
+    else
+      List.zip([result, wiring])
+      |> Enum.map(fn {state, wires} ->
+        apply_until_match(state, diagram, List.delete(wiring, wires), presses + 1)
+      end)
+      |> Enum.min()
+    end
+  end
+
+  def fewest_presses(diagram, wiring) do
+    initial_state = Enum.reduce(diagram, %{}, fn {k, _v}, acc ->
+      Map.put(acc, k, false)
+    end)
+    apply_until_match(initial_state, diagram, wiring)
+  end
+  
+  def solve1(text) do
+    text
+    |> AOC.as_single_lines()
+    |> Enum.map(fn line ->
+      [diagram, wiring, _joltage] = parse_line(line)
+      fewest_presses(diagram, wiring)
+      |> AOC.inspect()
+    end)
+    |> AOC.inspect(label: "to sum")
+    |> Enum.sum()
+  end
+
+  # def solve2(text) do
+  # end
+end
+
+# Example:
+
+IO.inspect(Time.utc_now())
+data.()
+|> Day10.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 7)")
+#
+
+# data.()
+# |> Day10.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# 
+
+```
