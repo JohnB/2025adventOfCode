@@ -52,85 +52,151 @@ end
 ```elixir
 defmodule Day10 do
   @parser ~r/\[(.*)\] +(.*) +\{(.*)\}/
+  # @parser ~r/\[(.*)\]( \(.*\))+ \{(.*)\}/
+  
   def parse_line(line) do
-    [_full, diagram, wiring, joltage] = Regex.run(@parser, line)
-    wiring = wiring
-      |> String.split(" ", trim: true)
-      |> Enum.map(fn csv ->
-        csv
-        |> String.slice(1..-2//1)
-        |> String.split(",")
-        |> Enum.map(&String.to_integer/1)
-      end)
+    [_full, diagram, schematic, joltages] = Regex.run(@parser, line)
     diagram = diagram
-      |> AOC.inspect()
-      |> String.split("", trim: true)
-      |> Enum.with_index()
-      # |> AOC.inspect(label: "17")
-      |> Enum.reduce(%{}, fn {char, index}, acc -> Map.put(acc, index, char == "#") end)
+      # |> AOC.inspect()
+      |> String.replace("#", "1")
+      |> String.replace(".", "0")
+      |> String.reverse() # Crucial!
+      |> String.to_integer(2)
       # |> AOC.inspect(label: "19")
-
-    [diagram, wiring, joltage]
-    # |> AOC.inspect()
+    wiring = schematic
+      # |> AOC.inspect(label: "15")
+      |> String.split(" ")
+      |> Enum.map(fn parenthesized_number ->
+        parenthesized_number
+        |> String.slice(1..-2//1)
+        |> AOC.as_comma_separated_integers()
+      end)
+    joltages = joltages
+      |> AOC.as_comma_separated_integers()
+     
+    [diagram, wiring, joltages]
+    # |> AOC.inspect(label: "---")
   end
 
-  @no_convergence 500
-  def toggle(state, wires) do
-    wires
-    |> Enum.reduce(state, fn index, acc ->
-      Map.update!(acc, index, fn boolean -> !boolean end)
-    end)
-  end
+  # Part 1: There is no point in applying the same wiring twice,
+  # so max depth is the same as the number of wirings.
+  # Start from the diagram and press until we're at 0.
+  def apply_until_match(original_goal, wiring) do
+    num_wires = Enum.count(wiring)
 
-  # There is no point in applying the same wiring twice, so max depth is
-  # the same as the number of wirings.
-  def apply_until_match(initial_state, diagram, wiring, presses \\ 1)
-  def apply_until_match(_initial_state, _diagram, [], _presses), do: @no_convergence
-  def apply_until_match(diagram, diagram, _wiring, presses), do: presses
-  def apply_until_match(initial_state, diagram, wiring, presses) do
-    AOC.inspect([initial_state, presses, diagram, wiring])
-    result = wiring
-    |> Enum.reduce_while([], fn wires, acc ->
-      new_state = toggle(initial_state, wires)
-      if new_state == diagram do
-        {:halt, presses}
+    1..num_wires
+    |> Enum.reduce_while({[original_goal], wiring}, fn press, {goals, wires} ->
+      new_goals = for goal <- goals, wire <- wires do
+          Bitwise.bxor(wire, goal)
+        end
+        |> Enum.uniq()
+        # |> AOC.inspect()
+        |> Enum.reject(&(&1 == original_goal))
+        # |> AOC.inspect()
+
+      if Enum.any?(new_goals, &(&1 == 0)) do
+        {:halt, press}      
       else
-        {:cont, acc ++ [new_state]}
+        {:cont, {new_goals, wires}}
       end
     end)
-
-    if is_integer(result) do
-      result
-    else
-      List.zip([result, wiring])
-      |> Enum.map(fn {state, wires} ->
-        apply_until_match(state, diagram, List.delete(wiring, wires), presses + 1)
-      end)
-      |> Enum.min()
-    end
-  end
-
-  def fewest_presses(diagram, wiring) do
-    initial_state = Enum.reduce(diagram, %{}, fn {k, _v}, acc ->
-      Map.put(acc, k, false)
-    end)
-    apply_until_match(initial_state, diagram, wiring)
   end
   
-  def solve1(text) do
+  def parsed_data(text) do
     text
     |> AOC.as_single_lines()
     |> Enum.map(fn line ->
-      [diagram, wiring, _joltage] = parse_line(line)
-      fewest_presses(diagram, wiring)
-      |> AOC.inspect()
+      [_diagram, _wiring, _joltage] = parse_line(line)
+      # |> AOC.inspect()
+    end)
+  end
+
+  def solve1(text) do
+    parsed_data(text)
+    |> Enum.map(fn [diagram, wiring, _joltage] ->
+      wires = wiring
+        |> Enum.map(fn powers -> 
+          powers
+          |> Enum.reduce(0, fn power, acc -> acc + 2 ** power end)
+        end)
+
+      apply_until_match(diagram, wires)
     end)
     |> AOC.inspect(label: "to sum")
     |> Enum.sum()
   end
 
-  # def solve2(text) do
-  # end
+  # Part 2: We now *want* to apply the same wiring twice, to impact the joltages.
+  # Start from the diagram and voltages until both are at 0.
+  def apply_until_match2(original_goal, wires, joltages) do
+    num_wires = Enum.count(wires)
+
+    1..Enum.product(joltages)
+    |> Enum.reduce_while({[original_goal,joltages]}, fn press, {goals} ->
+      {new_goals, new_joltages} = for goal <- goals, wire <- wires do
+          Bitwise.bxor(wire, goal)
+        end
+        |> Enum.uniq()
+        |> AOC.inspect()
+        |> Enum.reject(&(&1 == original_goal))
+        |> AOC.inspect()
+
+      if Enum.any?(new_goals, &(&1 == 0)) do
+        {:halt, press}      
+      else
+        {:cont, {new_goals, wires}}
+      end
+    end)
+  end
+
+  def solve2(text) do
+    parsed_data(text)
+    |> Enum.map(fn [diagram, wiring, joltages] ->
+      AOC.inspect([diagram, wiring, joltages])
+      button_map = wiring
+        |> AOC.inspect(label: "raw wiring")
+        # |> Enum.with_index()
+        |> Enum.reduce(%{}, fn buttons, acc ->
+          buttons
+          |> Enum.reduce(acc, fn button, acc2 ->
+            Map.update(acc2, button, [buttons], fn existing_value -> existing_value ++ [buttons] end)
+          end)
+        end)
+        |> AOC.inspect(label: "button_map for #{diagram}")
+      jolt_map = joltages
+        |> Enum.with_index()
+        |> Enum.reduce(%{}, fn {joltage, index}, acc ->
+          Map.put(acc, index, joltage)
+        end)
+        |> AOC.inspect(label: "jolt_map")
+
+      button_map
+      |> Enum.sort_by(fn {_k, v} -> -Enum.count(v) end)
+      |> Enum.reduce({}, fn {k, buttons}, acc ->
+        max_presses = jolt_map[k]
+        for joltage <- 
+        
+      end)
+      # wires = wiring
+      #   |> Enum.map(fn powers -> 
+      #     powers
+      #     |> Enum.reduce(0, fn power, acc -> acc + 2 ** power end)
+      #   end)
+
+      # apply_until_match2(diagram, wires)
+    end)
+    |> AOC.inspect(label: "to sum")
+    |> Enum.sum()
+
+    [diagram, wiring, joltages] = parsed_data(text)
+    
+    [diagram, wiring, joltages]
+    |> Enum.map(fn [diagram, wiring, joltages] ->
+      apply_until_match2(diagram, wiring, joltages)
+    end)
+    |> AOC.inspect(label: "to sum")
+    |> Enum.sum()
+  end
 end
 
 # Example:
@@ -139,11 +205,11 @@ IO.inspect(Time.utc_now())
 data.()
 |> Day10.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 7)")
-#
+# 447
 
-# data.()
-# |> Day10.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+data.()
+|> Day10.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: )")
 # 
 
 ```

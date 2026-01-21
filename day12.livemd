@@ -51,8 +51,55 @@ end
 
 ```elixir
 defmodule Day12 do
+  @tree ~r/^(\d+)x(\d+): (.*)$/
+  def parse(text) do
+    [trees | presents] = text
+      |> AOC.as_doublespaced_paragraphs()
+      |> Enum.reverse()
+
+    trees = trees
+      |> AOC.as_single_lines()
+      # |> Enum.reverse()
+      |> Enum.map(fn tree -> 
+        [_full, width, height, present_ids] = Regex.run(@tree, tree)
+        present_ids = present_ids
+          |> String.split(" ", trim: true)
+          |> Enum.map(&String.to_integer/1)
+        [String.to_integer(width), String.to_integer(height), present_ids]
+      end)
+    presents = presents
+      |> Enum.reverse()
+      |> Enum.reduce(%{}, fn paragraph, acc ->
+        [id | cells] = paragraph
+          |> AOC.as_single_lines()
+          # |> AOC.inspect(label: "23")
+        id = id
+          |> String.replace(":", "")
+          |> String.to_integer()
+        grid = cells
+          # |> Enum.reverse()
+          |> Enum.join("\n")
+          |> AOC.as_grid()
+          # |> AOC.display_grid()
+        Map.put(acc, id, grid)
+      end)
+    [trees, presents]
+  end
+
+  def all_fit?(width, height, present_ids) do
+    true
+  end
+  
   def solve1(text) do
-    text
+    [trees, presents] = parse(text)
+    # AOC.inspect(trees)
+    # Enum.each(presents, fn {id, present} -> AOC.display_grid(present, "#{id}") end)
+
+    trees
+    |> Enum.filter(fn [width, height, present_ids] = _tree ->
+      all_fit?(width, height, present_ids)
+    end)
+    |> Enum.count()
   end
 
   # def solve2(text) do
@@ -64,7 +111,7 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day12.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
 #
 
 # data.()
