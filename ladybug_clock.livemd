@@ -1,0 +1,64 @@
+# Ladybug Clock
+
+## Section
+
+Ladybug clock which is the first puzzle at https://momath.org/mindbenders/
+if a ladybug starts at 12 on a clock and jumps randomly to the nearest
+number, what are the odds that the last digit it lands on is 6?
+
+```elixir
+# When inspecting lists of numbers, use "charlists: :as_lists"
+#
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "5adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+### Solution
+
+```elixir
+defmodule LadybugClock do
+  def random_step() do
+    Enum.random([1, -1])
+  end
+  
+  def simulate(iterations \\ 1_000_000, hours \\ 12) do
+    # Use 0 as the top of the clock, since it works better mathematically
+    counts = Enum.reduce(1..hours, %{}, fn hr, acc -> Map.put(acc, hr - 1, 0) end)
+    starting_set = MapSet.new([0])
+    
+    (1..iterations)
+    |> Enum.reduce(counts, fn _iteration, acc ->
+      final_hour = Enum.reduce_while(1..iterations, {starting_set, 0}, fn _steps, {set, hour} ->
+        hour = rem(hour + random_step() + hours, hours)
+        set = MapSet.put(set, hour)
+        if MapSet.size(set) == hours do
+          {:halt, hour}
+        else
+          {:cont, {set, hour}}
+        end
+      end)
+      {_, updated} = get_and_update_in(acc, [final_hour], fn current -> 
+        # AOC.inspect([acc, final_hour, current])
+        {current, current + 1} 
+      end)
+      updated
+    end)
+    |> Enum.map(fn {k, v} -> IO.inspect(v / iterations, label: "#{k}") end)
+  end
+end
+
+# Example:
+
+IO.inspect(Time.utc_now())
+LadybugClock.simulate()
+IO.inspect(Time.utc_now())
+
+
+```
