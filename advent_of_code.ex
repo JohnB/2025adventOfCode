@@ -298,15 +298,15 @@ defmodule AdventOfCode do
 
   # Return an integer representing the 0-based blit to apply, and a list of
   # ranges of bit shiftw that can be applied to cover the destination grid.
-  def grid_as_blit_to_apply(dest_grid, blit_grid) do
-    blit_grid
-      |> grid_cells()
-      |> Enum.filter(fn cell_id -> blit_grid[cell_id] == "#" end)
-      |> Enum.reduce(0, fn cell_id, acc -> acc + 2 ** cell_id
-
-      end)
-
-  end
+#  def grid_as_blit_to_apply(dest_grid, blit_grid) do
+#    blit_grid
+#      |> grid_cells()
+#      |> Enum.filter(fn cell_id -> blit_grid[cell_id] == "#" end)
+#      |> Enum.reduce(0, fn cell_id, acc -> acc + 2 ** cell_id
+#
+#      end)
+#
+#  end
 
   # Dijkstra
   #   Implement https://en.wikipedia.org/wiki/Dijkstra's_algorithm#Algorithm
